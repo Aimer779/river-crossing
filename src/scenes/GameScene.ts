@@ -8,6 +8,14 @@ import type { BankState, GameState, Move, Side } from '../core/types';
 import { applyMove, isBankSafe } from '../core/rules';
 import { solveByBFS } from '../core/solver';
 import { cloneState } from '../utils/cloneState';
+import {
+  defaultSceneLayout,
+  isLayoutDevMode,
+  loadSceneLayout,
+  resetSceneLayout,
+  saveSceneLayout,
+  type SceneLayout,
+} from '../config/layout';
 
 type GameSceneData = {
   state?: GameState;
@@ -26,10 +34,34 @@ type GameButtons = {
   title: UIButton;
 };
 
-const BOAT_Y = 470;
-const BANK_TOP_Y = 534;
-const BANK_CHARACTER_Y = BANK_TOP_Y - 36;
-const CHARACTER_SPACING = 58;
+type WorldObjects = {
+  background: Phaser.GameObjects.Rectangle;
+  river: Phaser.GameObjects.Rectangle;
+  leftBank: Phaser.GameObjects.Rectangle;
+  rightBank: Phaser.GameObjects.Rectangle;
+  statusBar: Phaser.GameObjects.Rectangle;
+  graphics: Phaser.GameObjects.Graphics;
+};
+
+type DevTarget = {
+  label: string;
+  x?: keyof SceneLayout;
+  y?: keyof SceneLayout;
+  width?: keyof SceneLayout;
+  height?: keyof SceneLayout;
+  spacing?: keyof SceneLayout;
+};
+
+const DEV_TARGETS: DevTarget[] = [
+  { label: 'river', x: 'riverX', y: 'riverY', width: 'riverWidth', height: 'riverHeight' },
+  { label: 'left bank', x: 'leftBankX', y: 'leftBankY', width: 'leftBankWidth', height: 'leftBankHeight' },
+  { label: 'right bank', x: 'rightBankX', y: 'rightBankY', width: 'rightBankWidth', height: 'rightBankHeight' },
+  { label: 'bank top line', y: 'bankTopY' },
+  { label: 'boat left dock', x: 'boatLeftX', y: 'boatY' },
+  { label: 'boat right dock', x: 'boatRightX', y: 'boatY' },
+  { label: 'left characters', x: 'leftStartX', y: 'characterY', spacing: 'characterSpacing' },
+  { label: 'right characters', x: 'rightStartX', y: 'characterY', spacing: 'characterSpacing' },
+];
 
 function initialState(): GameState {
   return {
@@ -46,20 +78,22 @@ function opposite(side: Side): Side {
   return side === 'left' ? 'right' : 'left';
 }
 
-function boatX(side: Side): number {
-  return side === 'left' ? 430 : 850;
-}
-
 export class GameScene extends Phaser.Scene {
   private state: GameState = initialState();
+  private layout: SceneLayout = loadSceneLayout();
   private undoStack: GameState[] = [];
   private moveLabels: string[] = [];
   private characters: Character[] = [];
   private selectedIds: string[] = [];
   private boat!: Boat;
+  private world?: WorldObjects;
   private statusText!: Phaser.GameObjects.Text;
   private historyPanel!: HistoryPanel;
   private buttons!: GameButtons;
+  private devMode = false;
+  private devTargetIndex = 0;
+  private devText?: Phaser.GameObjects.Text;
+  private devGuide?: Phaser.GameObjects.Graphics;
   private isMoving = false;
   private aiRunning = false;
   private aiPath: Move[] = [];
@@ -73,6 +107,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   init(data: GameSceneData = {}) {
+    this.layout = loadSceneLayout();
+    this.devMode = isLayoutDevMode();
     this.state = data.state ? cloneState(data.state) : initialState();
     this.undoStack = data.undoStack ? data.undoStack.map((item) => cloneState(item)) : [];
     this.moveLabels = data.moveLabels ? [...data.moveLabels] : [];
@@ -83,6 +119,9 @@ export class GameScene extends Phaser.Scene {
     this.aiPath = [];
     this.aiStepIndex = 0;
     this.activeToast = undefined;
+    this.world = undefined;
+    this.devText = undefined;
+    this.devGuide = undefined;
     this.autoDemo = data.autoDemo ?? false;
   }
 
@@ -90,28 +129,47 @@ export class GameScene extends Phaser.Scene {
     this.drawWorld();
     this.createUi();
     this.createCharacters();
-    this.boat = new Boat(this, boatX(this.state.boatSide), BOAT_Y);
+    this.boat = new Boat(this, this.boatX(this.state.boatSide), this.layout.boatY);
     this.syncCharactersToState();
     this.updateUi();
+    if (this.devMode) {
+      this.createDevTools();
+    }
     if (this.autoDemo) {
       this.time.delayedCall(250, () => this.startAiDemo());
     }
   }
 
   private drawWorld() {
-    this.add.rectangle(640, 360, 1280, 720, 0x9ed2df);
-    this.add.rectangle(640, 452, 560, 286, 0x4c9dcc);
-    this.add.rectangle(180, 626, 360, 184, 0x75a96a);
-    this.add.rectangle(1100, 626, 360, 184, 0x72a364);
-    this.add.rectangle(640, 44, 1240, 58, 0x1e2b30, 0.86);
+    this.world = {
+      background: this.add.rectangle(640, 360, 1280, 720, 0x9ed2df),
+      river: this.add.rectangle(640, 452, 560, 286, 0x4c9dcc),
+      leftBank: this.add.rectangle(180, 626, 360, 184, 0x75a96a),
+      rightBank: this.add.rectangle(1100, 626, 360, 184, 0x72a364),
+      statusBar: this.add.rectangle(640, 44, 1240, 58, 0x1e2b30, 0.86),
+      graphics: this.add.graphics(),
+    };
+    this.updateWorldLayout();
+  }
 
-    const graphics = this.add.graphics();
-    graphics.lineStyle(4, 0xe6f5ec, 0.35);
-    graphics.lineBetween(0, BANK_TOP_Y, 360, BANK_TOP_Y);
-    graphics.lineBetween(920, BANK_TOP_Y, 1280, BANK_TOP_Y);
-    graphics.lineStyle(2, 0xd7eff8, 0.18);
-    for (let y = 360; y <= 520; y += 42) {
-      graphics.lineBetween(396, y, 884, y + 14);
+  private updateWorldLayout() {
+    if (!this.world) return;
+    const { layout } = this;
+    this.world.background.setPosition(layout.width / 2, layout.height / 2).setSize(layout.width, layout.height);
+    this.world.river.setPosition(layout.riverX, layout.riverY).setSize(layout.riverWidth, layout.riverHeight);
+    this.world.leftBank.setPosition(layout.leftBankX, layout.leftBankY).setSize(layout.leftBankWidth, layout.leftBankHeight);
+    this.world.rightBank.setPosition(layout.rightBankX, layout.rightBankY).setSize(layout.rightBankWidth, layout.rightBankHeight);
+    this.world.statusBar.setPosition(640, 44).setSize(1240, 58);
+
+    const riverLeft = layout.riverX - layout.riverWidth / 2;
+    const riverRight = layout.riverX + layout.riverWidth / 2;
+    this.world.graphics.clear();
+    this.world.graphics.lineStyle(4, 0xe6f5ec, 0.35);
+    this.world.graphics.lineBetween(0, layout.bankTopY, layout.leftBankX + layout.leftBankWidth / 2, layout.bankTopY);
+    this.world.graphics.lineBetween(layout.rightBankX - layout.rightBankWidth / 2, layout.bankTopY, layout.width, layout.bankTopY);
+    this.world.graphics.lineStyle(2, 0xd7eff8, 0.18);
+    for (let y = layout.riverY - layout.riverHeight / 3; y <= layout.riverY + layout.riverHeight / 4; y += 42) {
+      this.world.graphics.lineBetween(riverLeft + 36, y, riverRight - 36, y + 14);
     }
   }
 
@@ -133,6 +191,153 @@ export class GameScene extends Phaser.Scene {
     };
 
     this.historyPanel = new HistoryPanel(this, 944, 98);
+  }
+
+  private createDevTools() {
+    this.devGuide = this.add.graphics().setDepth(900);
+    this.devText = this.add.text(16, 82, '', {
+      fontSize: '15px',
+      color: '#fff8c9',
+      backgroundColor: '#1e2428',
+      padding: { x: 10, y: 8 },
+      fontFamily: 'Consolas, "Microsoft YaHei", monospace',
+      lineSpacing: 4,
+    }).setDepth(901);
+    this.input.keyboard?.on('keydown', this.handleDevKey, this);
+    this.updateDevTools();
+  }
+
+  private handleDevKey(event: KeyboardEvent) {
+    const key = event.key;
+    const step = event.shiftKey ? 10 : 1;
+    let handled = true;
+
+    if (key === 'n' || key === 'N') {
+      this.devTargetIndex = (this.devTargetIndex + 1) % DEV_TARGETS.length;
+    } else if (key === 'p' || key === 'P') {
+      this.devTargetIndex = (this.devTargetIndex - 1 + DEV_TARGETS.length) % DEV_TARGETS.length;
+    } else if (key === 'ArrowLeft') {
+      this.adjustDevTarget('x', -step);
+    } else if (key === 'ArrowRight') {
+      this.adjustDevTarget('x', step);
+    } else if (key === 'ArrowUp') {
+      this.adjustDevTarget('y', -step);
+    } else if (key === 'ArrowDown') {
+      this.adjustDevTarget('y', step);
+    } else if (key === '[') {
+      this.adjustDevTarget('width', -step);
+    } else if (key === ']') {
+      this.adjustDevTarget('width', step);
+    } else if (key === ';') {
+      this.adjustDevTarget('height', -step);
+    } else if (key === "'") {
+      this.adjustDevTarget('height', step);
+    } else if (key === ',') {
+      this.adjustDevTarget('spacing', -step);
+    } else if (key === '.') {
+      this.adjustDevTarget('spacing', step);
+    } else if (key === 'Enter') {
+      saveSceneLayout(this.layout);
+      this.showToast('布局已保存到 localStorage');
+    } else if (key === 'Backspace') {
+      resetSceneLayout();
+      this.layout = { ...defaultSceneLayout };
+      this.refreshAfterLayoutEdit();
+      this.showToast('布局已重置');
+    } else if (key === 'c' || key === 'C') {
+      this.copyLayoutJson();
+    } else {
+      handled = false;
+    }
+
+    if (handled) {
+      event.preventDefault();
+      this.updateDevTools();
+    }
+  }
+
+  private adjustDevTarget(kind: keyof Pick<DevTarget, 'x' | 'y' | 'width' | 'height' | 'spacing'>, delta: number) {
+    const field = DEV_TARGETS[this.devTargetIndex][kind];
+    if (!field) return;
+    const min = kind === 'width' || kind === 'height' ? 20 : kind === 'spacing' ? 24 : -200;
+    this.layout[field] = Math.max(min, Math.round(this.layout[field] + delta));
+    this.refreshAfterLayoutEdit();
+  }
+
+  private refreshAfterLayoutEdit() {
+    this.updateWorldLayout();
+    this.boat?.setPosition(this.boatX(this.state.boatSide), this.layout.boatY);
+    this.positionCharacters(false);
+    this.updateDevTools();
+  }
+
+  private updateDevTools() {
+    this.updateDevText();
+    this.updateDevGuide();
+  }
+
+  private updateDevText() {
+    if (!this.devText) return;
+    const target = DEV_TARGETS[this.devTargetIndex];
+    this.devText.setText([
+      'DEV LAYOUT MODE',
+      `target ${this.devTargetIndex + 1}/${DEV_TARGETS.length}: ${target.label}`,
+      'N/P target | arrows move | Shift = 10px',
+      '[] width | ;/\' height | ,/. spacing',
+      'Enter save | Backspace reset | C copy JSON',
+      this.formatDevTargetValue(target),
+    ]);
+  }
+
+  private formatDevTargetValue(target: DevTarget): string {
+    const parts: string[] = [];
+    if (target.x) parts.push(`${target.x}=${this.layout[target.x]}`);
+    if (target.y) parts.push(`${target.y}=${this.layout[target.y]}`);
+    if (target.width) parts.push(`${target.width}=${this.layout[target.width]}`);
+    if (target.height) parts.push(`${target.height}=${this.layout[target.height]}`);
+    if (target.spacing) parts.push(`${target.spacing}=${this.layout[target.spacing]}`);
+    return parts.join('  ');
+  }
+
+  private updateDevGuide() {
+    if (!this.devGuide) return;
+    this.devGuide.clear();
+    const target = DEV_TARGETS[this.devTargetIndex];
+    this.devGuide.lineStyle(3, 0xfff06a, 1);
+    this.devGuide.fillStyle(0xfff06a, 0.8);
+
+    if (target.width && target.height && target.x && target.y) {
+      const x = this.layout[target.x] - this.layout[target.width] / 2;
+      const y = this.layout[target.y] - this.layout[target.height] / 2;
+      this.devGuide.strokeRect(x, y, this.layout[target.width], this.layout[target.height]);
+      return;
+    }
+
+    if (target.x && target.y) {
+      this.devGuide.strokeCircle(this.layout[target.x], this.layout[target.y], 22);
+      this.devGuide.fillCircle(this.layout[target.x], this.layout[target.y], 5);
+      return;
+    }
+
+    if (target.y) {
+      this.devGuide.lineBetween(0, this.layout[target.y], this.layout.width, this.layout[target.y]);
+    }
+  }
+
+  private copyLayoutJson() {
+    const json = JSON.stringify(this.layout, null, 2);
+    if (typeof navigator === 'undefined' || !navigator.clipboard) {
+      console.info(json);
+      this.showToast('当前浏览器不能复制，已输出到控制台');
+      return;
+    }
+
+    navigator.clipboard.writeText(json)
+      .then(() => this.showToast('布局 JSON 已复制'))
+      .catch(() => {
+        console.info(json);
+        this.showToast('复制失败，已输出到控制台');
+      });
   }
 
   private createCharacters() {
@@ -216,7 +421,7 @@ export class GameScene extends Phaser.Scene {
     this.updateUi();
 
     movingCharacters.forEach((character, index) => {
-      const seat = { x: boatX(to) + (index === 0 ? -42 : 42), y: BOAT_Y - 8 };
+      const seat = { x: this.boatX(to) + (index === 0 ? -42 : 42), y: this.layout.boatY - 8 };
       this.tweens.killTweensOf(character);
       this.tweens.add({
         targets: character,
@@ -229,7 +434,7 @@ export class GameScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: this.boat,
-      x: boatX(to),
+      x: this.boatX(to),
       duration: 460,
       ease: 'Sine.easeInOut',
       onComplete: () => {
@@ -269,7 +474,7 @@ export class GameScene extends Phaser.Scene {
     this.moveLabels.pop();
     this.selectedIds = [];
     this.state = previous;
-    this.boat.setPosition(boatX(this.state.boatSide), BOAT_Y);
+    this.boat.setPosition(this.boatX(this.state.boatSide), this.layout.boatY);
     this.syncCharactersToState(false);
     this.updateUi();
   }
@@ -367,7 +572,7 @@ export class GameScene extends Phaser.Scene {
         character.location = index < leftCount ? 'left' : 'right';
       });
     });
-    this.boat?.setPosition(boatX(this.state.boatSide), BOAT_Y);
+    this.boat?.setPosition(this.boatX(this.state.boatSide), this.layout.boatY);
     this.positionCharacters(animated);
   }
 
@@ -389,9 +594,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   private bankPosition(side: Side, kind: CharacterKind, index: number) {
-    const startX = side === 'left' ? 56 : 934;
+    const startX = side === 'left' ? this.layout.leftStartX : this.layout.rightStartX;
     const offset = kind === 'huaqiang' ? index : index + 3;
-    return { x: startX + offset * CHARACTER_SPACING, y: BANK_CHARACTER_Y };
+    return { x: startX + offset * this.layout.characterSpacing, y: this.layout.characterY };
+  }
+
+  private boatX(side: Side): number {
+    return side === 'left' ? this.layout.boatLeftX : this.layout.boatRightX;
   }
 
   private moveCharacter(character: Character, position: { x: number; y: number }, animated: boolean) {
