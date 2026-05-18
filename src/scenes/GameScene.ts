@@ -60,6 +60,7 @@ export class GameScene extends Phaser.Scene {
   private aiPath: Move[] = [];
   private aiStepIndex = 0;
   private aiDelay?: Phaser.Time.TimerEvent;
+  private activeToast?: Toast;
   private autoDemo = false;
 
   constructor() {
@@ -76,6 +77,7 @@ export class GameScene extends Phaser.Scene {
     this.aiRunning = false;
     this.aiPath = [];
     this.aiStepIndex = 0;
+    this.activeToast = undefined;
     this.autoDemo = data.autoDemo ?? false;
   }
 
@@ -232,6 +234,7 @@ export class GameScene extends Phaser.Scene {
 
     movingCharacters.forEach((character, index) => {
       const seat = { x: boatX(to) + (index === 0 ? -42 : 42), y: 492 };
+      this.tweens.killTweensOf(character);
       this.tweens.add({
         targets: character,
         x: seat.x,
@@ -251,7 +254,7 @@ export class GameScene extends Phaser.Scene {
         this.moveLabels.push(label);
         this.selectedIds = [];
         this.isMoving = false;
-        this.syncCharactersToState();
+        this.syncCharactersToState(false);
         this.updateUi();
 
         if (this.state.status !== 'playing') {
@@ -409,7 +412,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   private moveCharacter(character: Character, position: { x: number; y: number }, animated: boolean) {
+    this.tweens.killTweensOf(character);
     if (!animated) {
+      character.setPosition(position.x, position.y);
+      return;
+    }
+    if (Phaser.Math.Distance.Between(character.x, character.y, position.x, position.y) < 1) {
       character.setPosition(position.x, position.y);
       return;
     }
@@ -517,7 +525,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private showToast(message: string) {
-    new Toast(this, 640, 594, message);
+    this.activeToast?.destroy();
+    this.activeToast = new Toast(this, 640, 594, message);
   }
 
   private enterGameOver() {

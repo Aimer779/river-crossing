@@ -47,6 +47,7 @@ export class UIButton extends Phaser.GameObjects.Container {
   }
 
   setEnabled(enabled: boolean) {
+    if (this.enabled === enabled) return this;
     this.enabled = enabled;
     this.setAlpha(enabled ? 1 : 0.5);
     this.background.setFillStyle(enabled ? NORMAL_COLOR : DISABLED_COLOR);
