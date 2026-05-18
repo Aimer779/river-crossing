@@ -5,6 +5,7 @@ export const audioKeys = {
   boatMove: 'boatMove',
   win: 'win',
   lose: 'lose',
+  titleMusic: 'titleMusic',
   backgroundMusic: 'backgroundMusic',
 } as const;
 
@@ -15,6 +16,7 @@ export const audioPaths = {
     [audioKeys.lose]: 'assets/audio/sfx/lose.mp3',
   },
   ambience: {
+    [audioKeys.titleMusic]: 'assets/audio/start.MP3',
     [audioKeys.backgroundMusic]: 'assets/audio/ambience/envir.mp3',
   },
 } as const;
@@ -106,34 +108,56 @@ function setSoundVolume(sound: VolumeSound, volume: number) {
 export function applyAudioSettings(sound: Phaser.Sound.BaseSoundManager) {
   const settings = loadAudioSettings();
   sound.mute = settings.muted;
-  updateBackgroundMusicVolume(sound);
+  updateLoopingMusicVolume(sound);
 }
 
-export function startBackgroundMusic(sound: Phaser.Sound.BaseSoundManager) {
+function startLoopingMusic(sound: Phaser.Sound.BaseSoundManager, key: string) {
   const settings = loadAudioSettings();
   sound.mute = settings.muted;
 
-  const existing = sound.getAll<VolumeSound>(audioKeys.backgroundMusic)
+  const existing = sound.getAll<VolumeSound>(key)
     .find((item) => !item.pendingRemove);
   if (existing) {
     setSoundVolume(existing, settings.volumes.ambience);
-    if (!existing.isPlaying && existing.isPaused) {
+    if (existing.isPaused) {
       existing.resume();
+    } else if (!existing.isPlaying) {
+      existing.play({ loop: true, volume: settings.volumes.ambience });
     }
     return;
   }
 
-  sound.add(audioKeys.backgroundMusic, {
+  sound.add(key, {
     loop: true,
     volume: settings.volumes.ambience,
   }).play();
 }
 
+export function startTitleMusic(sound: Phaser.Sound.BaseSoundManager) {
+  sound.stopByKey(audioKeys.backgroundMusic);
+  startLoopingMusic(sound, audioKeys.titleMusic);
+}
+
+export function stopTitleMusic(sound: Phaser.Sound.BaseSoundManager) {
+  sound.stopByKey(audioKeys.titleMusic);
+}
+
+export function startBackgroundMusic(sound: Phaser.Sound.BaseSoundManager) {
+  stopTitleMusic(sound);
+  startLoopingMusic(sound, audioKeys.backgroundMusic);
+}
+
 export function updateBackgroundMusicVolume(sound: Phaser.Sound.BaseSoundManager) {
+  updateLoopingMusicVolume(sound);
+}
+
+function updateLoopingMusicVolume(sound: Phaser.Sound.BaseSoundManager) {
   const settings = loadAudioSettings();
-  sound.getAll<VolumeSound>(audioKeys.backgroundMusic).forEach((item) => {
-    if (!item.pendingRemove) {
-      setSoundVolume(item, settings.volumes.ambience);
-    }
+  [audioKeys.titleMusic, audioKeys.backgroundMusic].forEach((key) => {
+    sound.getAll<VolumeSound>(key).forEach((item) => {
+      if (!item.pendingRemove) {
+        setSoundVolume(item, settings.volumes.ambience);
+      }
+    });
   });
 }

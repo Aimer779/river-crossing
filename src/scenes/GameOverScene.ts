@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { UIButton } from '../components/UIButton';
-import { audioKeys } from '../config/audio';
+import { applyAudioSettings, audioKeys, startBackgroundMusic } from '../config/audio';
 import type { GameState, GameStatus, Side } from '../core/types';
 import { cloneState } from '../utils/cloneState';
 
@@ -30,6 +30,9 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   create() {
+    applyAudioSettings(this.sound);
+    startBackgroundMusic(this.sound);
+
     const status = this.dataFromGame.status ?? 'lose';
     const isWin = status === 'win';
     const steps = this.dataFromGame.state?.steps ?? 0;

@@ -21,6 +21,7 @@ import {
   audioKeys,
   loadAudioSettings,
   setAudioMuted,
+  startBackgroundMusic,
   updateBackgroundMusicVolume,
 } from '../config/audio';
 
@@ -135,6 +136,7 @@ export class GameScene extends Phaser.Scene {
 
   create() {
     applyAudioSettings(this.sound);
+    startBackgroundMusic(this.sound);
     this.drawWorld();
     this.createUi();
     this.createCharacters();

@@ -7,6 +7,7 @@ import {
   setAudioChannelVolume,
   setAudioMuted,
   startBackgroundMusic,
+  startTitleMusic,
   updateBackgroundMusicVolume,
 } from '../config/audio';
 
@@ -27,6 +28,7 @@ export class TitleScene extends Phaser.Scene {
 
   create() {
     applyAudioSettings(this.sound);
+    startTitleMusic(this.sound);
     this.settingsPanel = undefined;
     this.volumeTexts = {};
     this.muteButton = undefined;

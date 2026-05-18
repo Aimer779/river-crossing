@@ -13,6 +13,7 @@
 - **白色船体素材不要全图清理近白背景**：摩托艇这类素材本体有大面积白色外壳和高光，不能直接使用 `-CleanInteriorBackground`，否则会误删船身；优先只做边缘 flood fill，再人工检查封闭空洞是否明显。
 - **音频设置统一走 `config/audio.ts`**：音效/语音/环境音量和静音状态通过 `loadAudioSettings()` / `saveAudioSettings()` 存到 `localStorage`，场景创建和播放前调用 `applyAudioSettings(this.sound)`；单个音效播放时再读取对应 channel 音量。
 - **背景音乐要从用户手势启动并防重复**：浏览器会限制自动播放，循环背景音乐应在“开始游戏”等用户点击回调里调用 `startBackgroundMusic(this.sound)`；该函数用全局 sound manager 查询已有 `backgroundMusic` 实例，避免返回标题后再次开始时叠加播放。
+- **分场景循环音乐要成对切换**：标题页音乐和非标题页环境音都走 ambience 音量，但进入标题页要停 `backgroundMusic` 并启动 `titleMusic`，进入游戏/结算等非标题页要停 `titleMusic` 并启动 `backgroundMusic`，避免两个循环音源叠播。
 - **布局调参会被 localStorage 覆盖默认值**：`?dev=1` 开启开发者布局模式后，按 Enter 会把 `SceneLayout` 保存到 `localStorage`。后续即使代码里的 `defaultSceneLayout` 已更新，本机浏览器仍会优先使用保存值；验证固化布局时需要在开发者模式按 Backspace 清除本地覆盖。
 - **船上视觉状态可与核心岸边状态短暂分离**：开船后核心 `GameState` 会立即把乘客计入目标岸，以保证规则、胜负、历史和撤销逻辑仍是单步完成；展示层可以保留 `selectedIds` 并让角色继续显示在船上，直到玩家点击下船。不要把这种视觉停留写回 core 层，否则会破坏当前 `applyMove()` 的状态模型。
 - **BFS 验收不能只看结果长度**：当前 solver 能从初始状态找到 11 步解，首步也是 2 华强去右岸；但实现没有复用 `getSafeMoves()`，而是自行枚举并通过 `applyMove()` 扩展状态。由于 `applyMove()` 会允许导致失败的合法移动并返回 `status: 'lose'`，BFS 会短暂把失败状态加入搜索队列，虽不影响当前答案，但不满足 PRD 中“只使用安全移动”的实现约束。

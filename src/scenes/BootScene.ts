@@ -12,6 +12,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image(assetKeys.huaqiang, assetPaths.images[assetKeys.huaqiang]);
     this.load.image(assetKeys.haoge, assetPaths.images[assetKeys.haoge]);
     this.load.audio(audioKeys.lose, audioPaths.sfx[audioKeys.lose]);
+    this.load.audio(audioKeys.titleMusic, audioPaths.ambience[audioKeys.titleMusic]);
     this.load.audio(audioKeys.backgroundMusic, audioPaths.ambience[audioKeys.backgroundMusic]);
   }
 
