@@ -26,6 +26,11 @@ type GameButtons = {
   title: UIButton;
 };
 
+const BOAT_Y = 470;
+const BANK_TOP_Y = 534;
+const BANK_CHARACTER_Y = BANK_TOP_Y - 36;
+const CHARACTER_SPACING = 58;
+
 function initialState(): GameState {
   return {
     left: { huaqiang: 3, haoge: 3 },
@@ -85,7 +90,7 @@ export class GameScene extends Phaser.Scene {
     this.drawWorld();
     this.createUi();
     this.createCharacters();
-    this.boat = new Boat(this, boatX(this.state.boatSide), 500);
+    this.boat = new Boat(this, boatX(this.state.boatSide), BOAT_Y);
     this.syncCharactersToState();
     this.updateUi();
     if (this.autoDemo) {
@@ -95,61 +100,39 @@ export class GameScene extends Phaser.Scene {
 
   private drawWorld() {
     this.add.rectangle(640, 360, 1280, 720, 0x9ed2df);
-    this.add.rectangle(180, 390, 360, 660, 0x75a96a);
-    this.add.rectangle(1100, 390, 360, 660, 0x72a364);
-    this.add.rectangle(640, 390, 560, 660, 0x4c9dcc);
-    this.add.rectangle(640, 88, 1240, 74, 0x1e2b30, 0.85);
-    this.add.text(148, 146, '左岸', {
-      fontSize: '28px',
-      color: '#ffffff',
-      fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
-    }).setOrigin(0.5);
-    this.add.text(1132, 146, '右岸', {
-      fontSize: '28px',
-      color: '#ffffff',
-      fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
-    }).setOrigin(0.5);
+    this.add.rectangle(640, 452, 560, 286, 0x4c9dcc);
+    this.add.rectangle(180, 626, 360, 184, 0x75a96a);
+    this.add.rectangle(1100, 626, 360, 184, 0x72a364);
+    this.add.rectangle(640, 44, 1240, 58, 0x1e2b30, 0.86);
 
-    this.add.text(42, 218, '华强', {
-      fontSize: '20px',
-      color: '#ffffff',
-      fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
-    }).setOrigin(0, 0.5);
-    this.add.text(42, 332, '郝哥', {
-      fontSize: '20px',
-      color: '#ffffff',
-      fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
-    }).setOrigin(0, 0.5);
-    this.add.text(968, 218, '华强', {
-      fontSize: '20px',
-      color: '#ffffff',
-      fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
-    }).setOrigin(0, 0.5);
-    this.add.text(968, 332, '郝哥', {
-      fontSize: '20px',
-      color: '#ffffff',
-      fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
-    }).setOrigin(0, 0.5);
+    const graphics = this.add.graphics();
+    graphics.lineStyle(4, 0xe6f5ec, 0.35);
+    graphics.lineBetween(0, BANK_TOP_Y, 360, BANK_TOP_Y);
+    graphics.lineBetween(920, BANK_TOP_Y, 1280, BANK_TOP_Y);
+    graphics.lineStyle(2, 0xd7eff8, 0.18);
+    for (let y = 360; y <= 520; y += 42) {
+      graphics.lineBetween(396, y, 884, y + 14);
+    }
   }
 
   private createUi() {
     this.statusText = this.add.text(38, 42, '', {
-      fontSize: '21px',
+      fontSize: '20px',
       color: '#ffffff',
       fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
-    });
+    }).setOrigin(0, 0.5);
 
     this.buttons = {
-      sail: new UIButton(this, 110, 650, '开船', () => this.handleSail()),
-      undo: new UIButton(this, 250, 650, '撤销', () => this.handleUndo()),
-      hint: new UIButton(this, 390, 650, '提示', () => this.handleHint()),
-      ai: new UIButton(this, 530, 650, 'AI 演示', () => this.startAiDemo()),
-      stopAi: new UIButton(this, 670, 650, '停止演示', () => this.stopAiDemo()),
-      restart: new UIButton(this, 810, 650, '重开', () => this.scene.start('GameScene')),
-      title: new UIButton(this, 950, 650, '返回标题', () => this.scene.start('TitleScene')),
+      sail: new UIButton(this, 640, 642, '开船', () => this.handleSail(), { width: 132, height: 46 }),
+      undo: new UIButton(this, 790, 642, '撤销', () => this.handleUndo(), { width: 86, height: 40, fontSize: '18px' }),
+      hint: new UIButton(this, 886, 642, '提示', () => this.handleHint(), { width: 86, height: 40, fontSize: '18px' }),
+      ai: new UIButton(this, 982, 642, 'AI', () => this.startAiDemo(), { width: 76, height: 40, fontSize: '18px' }),
+      stopAi: new UIButton(this, 1078, 642, '停止', () => this.stopAiDemo(), { width: 86, height: 40, fontSize: '18px' }),
+      restart: new UIButton(this, 1174, 642, '重开', () => this.scene.start('GameScene'), { width: 86, height: 40, fontSize: '18px' }),
+      title: new UIButton(this, 80, 642, '标题', () => this.scene.start('TitleScene'), { width: 86, height: 40, fontSize: '18px' }),
     };
 
-    this.historyPanel = new HistoryPanel(this, 944, 200);
+    this.historyPanel = new HistoryPanel(this, 944, 98);
   }
 
   private createCharacters() {
@@ -233,7 +216,7 @@ export class GameScene extends Phaser.Scene {
     this.updateUi();
 
     movingCharacters.forEach((character, index) => {
-      const seat = { x: boatX(to) + (index === 0 ? -42 : 42), y: 492 };
+      const seat = { x: boatX(to) + (index === 0 ? -42 : 42), y: BOAT_Y - 8 };
       this.tweens.killTweensOf(character);
       this.tweens.add({
         targets: character,
@@ -286,7 +269,7 @@ export class GameScene extends Phaser.Scene {
     this.moveLabels.pop();
     this.selectedIds = [];
     this.state = previous;
-    this.boat.setPosition(boatX(this.state.boatSide), 500);
+    this.boat.setPosition(boatX(this.state.boatSide), BOAT_Y);
     this.syncCharactersToState(false);
     this.updateUi();
   }
@@ -384,7 +367,7 @@ export class GameScene extends Phaser.Scene {
         character.location = index < leftCount ? 'left' : 'right';
       });
     });
-    this.boat?.setPosition(boatX(this.state.boatSide), 500);
+    this.boat?.setPosition(boatX(this.state.boatSide), BOAT_Y);
     this.positionCharacters(animated);
   }
 
@@ -406,9 +389,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private bankPosition(side: Side, kind: CharacterKind, index: number) {
-    const startX = side === 'left' ? 110 : 1035;
-    const y = kind === 'huaqiang' ? 218 : 332;
-    return { x: startX + index * 78, y };
+    const startX = side === 'left' ? 56 : 934;
+    const offset = kind === 'huaqiang' ? index : index + 3;
+    return { x: startX + offset * CHARACTER_SPACING, y: BANK_CHARACTER_Y };
   }
 
   private moveCharacter(character: Character, position: { x: number; y: number }, animated: boolean) {
@@ -487,9 +470,10 @@ export class GameScene extends Phaser.Scene {
     currentBank.haoge -= selected.haoge;
 
     this.statusText.setText(
-      `左岸：华强 × ${left.huaqiang}  郝哥 × ${left.haoge}    ` +
-      `右岸：华强 × ${right.huaqiang}  郝哥 × ${right.haoge}    ` +
-      `船上：${selected.huaqiang + selected.haoge} / 2    步数：${this.state.steps}`
+      `左岸 ${left.huaqiang + left.haoge}/6    ` +
+      `右岸 ${right.huaqiang + right.haoge}/6    ` +
+      `船上 ${selected.huaqiang + selected.haoge}/2    ` +
+      `步数 ${this.state.steps}`
     );
     this.historyPanel.update(this.moveLabels);
     this.updateButtons();
@@ -526,7 +510,7 @@ export class GameScene extends Phaser.Scene {
 
   private showToast(message: string) {
     this.activeToast?.destroy();
-    this.activeToast = new Toast(this, 640, 594, message);
+    this.activeToast = new Toast(this, 640, 586, message);
   }
 
   private enterGameOver() {

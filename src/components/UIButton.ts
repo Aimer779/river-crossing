@@ -4,6 +4,12 @@ const NORMAL_COLOR = 0x333333;
 const HOVER_COLOR = 0x444444;
 const DISABLED_COLOR = 0x777777;
 
+type UIButtonOptions = {
+  width?: number;
+  height?: number;
+  fontSize?: string;
+};
+
 export class UIButton extends Phaser.GameObjects.Container {
   private background: Phaser.GameObjects.Rectangle;
   private label: Phaser.GameObjects.Text;
@@ -15,23 +21,26 @@ export class UIButton extends Phaser.GameObjects.Container {
     x: number,
     y: number,
     text: string,
-    onClick?: () => void
+    onClick?: () => void,
+    options: UIButtonOptions = {}
   ) {
     super(scene, x, y);
     this.onClick = onClick;
+    const width = options.width ?? 128;
+    const height = options.height ?? 44;
 
-    this.background = scene.add.rectangle(0, 0, 128, 44, NORMAL_COLOR, 1).setStrokeStyle(2, 0xffffff, 0.25);
+    this.background = scene.add.rectangle(0, 0, width, height, NORMAL_COLOR, 1).setStrokeStyle(2, 0xffffff, 0.25);
     this.label = scene.add.text(0, 0, text, {
-      fontSize: '20px',
+      fontSize: options.fontSize ?? '20px',
       color: '#ffffff',
       fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
     }).setOrigin(0.5);
 
     this.add([this.background, this.label]);
     scene.add.existing(this);
-    this.setSize(128, 44);
+    this.setSize(width, height);
     this.setInteractive(
-      new Phaser.Geom.Rectangle(-64, -22, 128, 44),
+      new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height),
       Phaser.Geom.Rectangle.Contains
     );
 
