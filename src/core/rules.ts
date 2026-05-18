@@ -63,7 +63,12 @@ export function applyMove(state: GameState, move: Move): ApplyMoveResult {
   }
 
   const side = state.boatSide;
+  const to = side === 'left' ? 'right' : 'left';
+
   if (move.from !== side) {
+    return { ok: false, reason: 'WRONG_SIDE' };
+  }
+  if (move.to !== to) {
     return { ok: false, reason: 'WRONG_SIDE' };
   }
 
@@ -71,8 +76,6 @@ export function applyMove(state: GameState, move: Move): ApplyMoveResult {
   if (move.huaqiang > bank.huaqiang || move.haoge > bank.haoge) {
     return { ok: false, reason: 'NOT_ENOUGH_PEOPLE' };
   }
-
-  const to = side === 'left' ? 'right' : 'left';
 
   const newState: GameState = {
     left: { ...state.left },

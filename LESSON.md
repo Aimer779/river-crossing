@@ -5,6 +5,15 @@
 
 ---
 
+## 阶段一复查
+
+### 洞察
+
+- **BFS 验收不能只看结果长度**：当前 solver 能从初始状态找到 11 步解，首步也是 2 华强去右岸；但实现没有复用 `getSafeMoves()`，而是自行枚举并通过 `applyMove()` 扩展状态。由于 `applyMove()` 会允许导致失败的合法移动并返回 `status: 'lose'`，BFS 会短暂把失败状态加入搜索队列，虽不影响当前答案，但不满足 PRD 中“只使用安全移动”的实现约束。
+- **核心函数要兜住 Move 边界**：`applyMove()` 已校验 `move.from` 是否等于船所在岸，但还应校验 `move.to` 是否为对岸，避免外部传入畸形 `Move` 时核心层默默纠正而不是明确拒绝。
+- **阶段一缺少自动化规则测试**：`tsc` 和 `pnpm build` 只能证明类型和构建通过，不能证明人数守恒、非法原因、失败/胜利、BFS 最短路径等规则不回归。阶段二前应补一组无额外依赖的核心断言脚本，或经确认后引入测试框架。
+- **Node 脚本里不要再 spawn `pnpm`**：Windows 下 `execFileSync('pnpm')` / `execFileSync('pnpm.cmd')` 在当前环境会分别遇到 `ENOENT` / `EINVAL`。项目脚本如需临时编译 TS，直接用 `process.execPath` 执行本地 `node_modules/typescript/bin/tsc` 更稳定。
+
 ## 初始化阶段
 
 ### 洞察
