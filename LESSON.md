@@ -22,6 +22,7 @@
 - **Node 脚本里不要再 spawn `pnpm`**：Windows 下 `execFileSync('pnpm')` / `execFileSync('pnpm.cmd')` 在当前环境会分别遇到 `ENOENT` / `EINVAL`。项目脚本如需临时编译 TS，直接用 `process.execPath` 执行本地 `node_modules/typescript/bin/tsc` 更稳定。
 - **中文姓名输入优先用 Phaser DOM 输入框**：排行榜这类需要输入中文的界面不要用键盘事件手搓文本框，IME 组合输入会很麻烦；在 `gameConfig` 里开启 `dom.createContainer` 后用真实 `<input>`，再把保存/读取逻辑隔离到 service 层，后续替换 Supabase 更顺。
 - **生产部署资源不要裸写根目录路径**：Vite 开发服务器能读到项目根目录 `assets/`，但生产构建不会自动把根目录资源复制到 `dist/`。Phaser `load.image/audio` 如果写 `'assets/...'`，Vercel 上会 404 并导致缓存 key 缺失。应在配置层用 `../../assets/xxx?url` import，让 Vite 追踪并输出带 hash 的生产 URL；或把静态资源放进 `public/`。
+- **移动端点击错位优先查 scale bounds 和视口高度**：固定 1280x720 + `Phaser.Scale.FIT` 本身会等比缩放，但移动端地址栏收起、横竖屏切换、外层 CSS viewport 高度变化后，Phaser 输入坐标可能使用旧 bounds。页面容器应使用 `100dvh`/fixed/inset 布局并禁用默认触摸手势，窗口和 `visualViewport` 尺寸变化后调用 `game.scale.updateBounds()` + `game.scale.refresh()`。
 
 ## 初始化阶段
 
