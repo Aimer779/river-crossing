@@ -29,6 +29,7 @@ export class GameOverScene extends Phaser.Scene {
   private submitStatus?: Phaser.GameObjects.Text;
   private nameInput?: Phaser.GameObjects.DOMElement;
   private submitted = false;
+  private submitting = false;
 
   constructor() {
     super({ key: 'GameOverScene' });
@@ -50,6 +51,7 @@ export class GameOverScene extends Phaser.Scene {
     this.submitStatus = undefined;
     this.nameInput = undefined;
     this.submitted = false;
+    this.submitting = false;
   }
 
   create() {
@@ -122,7 +124,9 @@ export class GameOverScene extends Phaser.Scene {
     const input = this.getNameInputElement();
     input?.addEventListener('input', () => this.updateSubmitButton());
 
-    this.submitButton = new UIButton(this, 356, 506, '记录成绩', () => this.submitScore(), {
+    this.submitButton = new UIButton(this, 356, 506, '记录成绩', () => {
+      void this.submitScore();
+    }, {
       width: 150,
       height: 44,
     });
@@ -151,7 +155,8 @@ export class GameOverScene extends Phaser.Scene {
       fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
     }).setOrigin(0.5);
 
-    this.renderLeaderboard(getLeaderboard());
+    this.renderLeaderboardMessage('加载中...');
+    void this.loadLeaderboard();
   }
 
   private createLoseResult() {
@@ -206,13 +211,13 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   private updateSubmitButton() {
-    if (this.submitted) return;
+    if (this.submitted || this.submitting) return;
     const name = normalizeLeaderboardName(this.getNameInputElement()?.value ?? '');
     this.submitButton?.setEnabled(name.length > 0);
   }
 
-  private submitScore() {
-    if (this.submitted) return;
+  private async submitScore() {
+    if (this.submitted || this.submitting) return;
     const input = this.getNameInputElement();
     const name = normalizeLeaderboardName(input?.value ?? '');
     if (!name) {
@@ -221,20 +226,49 @@ export class GameOverScene extends Phaser.Scene {
       return;
     }
 
-    const entries = saveLeaderboardEntry({
-      name,
-      steps: this.dataFromGame.state?.steps ?? 0,
-      durationMs: this.dataFromGame.durationMs ?? 0,
-      completedAt: this.dataFromGame.completedAt ?? new Date().toISOString(),
-    });
-    if (input) {
-      input.value = name;
-      input.disabled = true;
+    this.submitting = true;
+    this.submitButton?.setLabel('记录中').setEnabled(false);
+    this.submitStatus?.setText('正在记录...');
+
+    try {
+      const entries = await saveLeaderboardEntry({
+        name,
+        steps: this.dataFromGame.state?.steps ?? 0,
+        durationMs: this.dataFromGame.durationMs ?? 0,
+        completedAt: this.dataFromGame.completedAt ?? new Date().toISOString(),
+      });
+      if (input) {
+        input.value = name;
+        input.disabled = true;
+      }
+      this.submitted = true;
+      this.submitButton?.setLabel('已记录').setEnabled(false);
+      this.submitStatus?.setText('郝哥记下了。');
+      this.renderLeaderboard(entries);
+    } catch {
+      this.submitting = false;
+      this.submitButton?.setLabel('记录成绩');
+      this.submitStatus?.setText('记录失败，稍后再试。');
+      this.updateSubmitButton();
     }
-    this.submitted = true;
-    this.submitButton?.setLabel('已记录').setEnabled(false);
-    this.submitStatus?.setText('郝哥记下了。');
-    this.renderLeaderboard(entries);
+  }
+
+  private async loadLeaderboard() {
+    try {
+      this.renderLeaderboard(await getLeaderboard());
+    } catch {
+      this.renderLeaderboardMessage('排行榜暂时不可用');
+    }
+  }
+
+  private renderLeaderboardMessage(message: string) {
+    this.leaderboardRows.forEach((row) => row.destroy());
+    this.leaderboardRows = [];
+    this.leaderboardRows.push(this.add.text(940, 330, message, {
+      fontSize: '24px',
+      color: '#d9e6df',
+      fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
+    }).setOrigin(0.5));
   }
 
   private renderLeaderboard(entries: LeaderboardEntry[]) {
@@ -242,11 +276,7 @@ export class GameOverScene extends Phaser.Scene {
     this.leaderboardRows = [];
 
     if (entries.length === 0) {
-      this.leaderboardRows.push(this.add.text(940, 330, '暂无记录', {
-        fontSize: '24px',
-        color: '#d9e6df',
-        fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
-      }).setOrigin(0.5));
+      this.renderLeaderboardMessage('暂无记录');
       return;
     }
 

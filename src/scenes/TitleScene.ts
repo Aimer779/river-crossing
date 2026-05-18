@@ -115,7 +115,9 @@ export class TitleScene extends Phaser.Scene {
     }).setOrigin(0, 0.5);
 
     // 7. 按钮区
-    new UIButton(this, 420, 535, '排行榜', () => this.toggleLeaderboardPanel(), {
+    new UIButton(this, 420, 535, '排行榜', () => {
+      this.toggleLeaderboardPanel();
+    }, {
       width: 140,
       height: 58,
       fontSize: '24px',
@@ -220,7 +222,6 @@ export class TitleScene extends Phaser.Scene {
       return;
     }
 
-    const entries = getLeaderboard();
     const panel = this.add.container(640, 500).setDepth(20);
     const background = this.add.rectangle(0, 0, 660, 330, 0x1e2b30, 0.97).setStrokeStyle(3, 0xf5e6c8, 0.28);
     const title = this.add.text(0, -136, '摆渡排行榜', {
@@ -235,16 +236,12 @@ export class TitleScene extends Phaser.Scene {
     }).setOrigin(0.5);
     panel.add([background, title, subtitle]);
 
-    if (entries.length === 0) {
-      const empty = this.add.text(0, 8, '暂无记录', {
-        fontSize: '26px',
-        color: '#d9e6df',
-        fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
-      }).setOrigin(0.5);
-      panel.add(empty);
-    } else {
-      this.addLeaderboardRows(panel, entries);
-    }
+    const loading = this.add.text(0, 8, '加载中...', {
+      fontSize: '26px',
+      color: '#d9e6df',
+      fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
+    }).setOrigin(0.5);
+    panel.add(loading);
 
     const closeButton = new UIButton(this, 0, 132, '关闭', () => this.toggleLeaderboardPanel(), {
       width: 100,
@@ -253,6 +250,30 @@ export class TitleScene extends Phaser.Scene {
     });
     panel.add(closeButton);
     this.leaderboardPanel = panel;
+    void this.populateLeaderboardPanel(panel, loading);
+  }
+
+  private async populateLeaderboardPanel(panel: Phaser.GameObjects.Container, loading: Phaser.GameObjects.Text) {
+    try {
+      const entries = await getLeaderboard();
+      if (this.leaderboardPanel !== panel) return;
+      loading.destroy();
+
+      if (entries.length === 0) {
+        const empty = this.add.text(0, 8, '暂无记录', {
+          fontSize: '26px',
+          color: '#d9e6df',
+          fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
+        }).setOrigin(0.5);
+        panel.add(empty);
+        return;
+      }
+
+      this.addLeaderboardRows(panel, entries);
+    } catch {
+      if (this.leaderboardPanel !== panel) return;
+      loading.setText('排行榜暂时不可用');
+    }
   }
 
   private addLeaderboardRows(panel: Phaser.GameObjects.Container, entries: LeaderboardEntry[]) {

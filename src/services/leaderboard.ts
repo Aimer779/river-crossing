@@ -1,3 +1,5 @@
+import { getSupabaseClient } from './supabase';
+
 export type LeaderboardEntry = {
   name: string;
   steps: number;
@@ -8,6 +10,13 @@ export type LeaderboardEntry = {
 const LEADERBOARD_KEY = 'river-crossing.leaderboard';
 const MAX_LEADERBOARD_ENTRIES = 50;
 const MAX_NAME_LENGTH = 12;
+
+type LeaderboardRow = {
+  name: string;
+  steps: number;
+  duration_ms: number;
+  completed_at: string;
+};
 
 function isLeaderboardEntry(value: unknown): value is LeaderboardEntry {
   if (!value || typeof value !== 'object') return false;
@@ -58,22 +67,76 @@ export function sortLeaderboard(entries: LeaderboardEntry[]): LeaderboardEntry[]
   ));
 }
 
-export function getLeaderboard(): LeaderboardEntry[] {
-  return sortLeaderboard(readStoredEntries()).slice(0, MAX_LEADERBOARD_ENTRIES);
+function normalizeEntry(entry: LeaderboardEntry): LeaderboardEntry {
+  return {
+    name: normalizeLeaderboardName(entry.name),
+    steps: Math.max(0, Math.round(entry.steps)),
+    durationMs: Math.max(0, Math.round(entry.durationMs)),
+    completedAt: entry.completedAt,
+  };
 }
 
-export function saveLeaderboardEntry(entry: LeaderboardEntry): LeaderboardEntry[] {
+function cacheEntry(entry: LeaderboardEntry): LeaderboardEntry[] {
   const next = sortLeaderboard([
     ...readStoredEntries(),
-    {
-      name: normalizeLeaderboardName(entry.name),
-      steps: Math.max(0, Math.round(entry.steps)),
-      durationMs: Math.max(0, Math.round(entry.durationMs)),
-      completedAt: entry.completedAt,
-    },
+    normalizeEntry(entry),
   ]).slice(0, MAX_LEADERBOARD_ENTRIES);
   writeStoredEntries(next);
   return next;
+}
+
+function fromLeaderboardRow(row: LeaderboardRow): LeaderboardEntry {
+  return {
+    name: row.name,
+    steps: row.steps,
+    durationMs: row.duration_ms,
+    completedAt: row.completed_at,
+  };
+}
+
+export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return sortLeaderboard(readStoredEntries()).slice(0, MAX_LEADERBOARD_ENTRIES);
+  }
+
+  const { data, error } = await client
+    .from('leaderboard_entries')
+    .select('name, steps, duration_ms, completed_at')
+    .order('steps', { ascending: true })
+    .order('duration_ms', { ascending: true })
+    .order('completed_at', { ascending: true })
+    .limit(MAX_LEADERBOARD_ENTRIES);
+
+  if (error) {
+    console.warn('Failed to load remote leaderboard, falling back to local cache.', error);
+    return sortLeaderboard(readStoredEntries()).slice(0, MAX_LEADERBOARD_ENTRIES);
+  }
+
+  const entries = sortLeaderboard((data ?? []).map(fromLeaderboardRow)).slice(0, MAX_LEADERBOARD_ENTRIES);
+  writeStoredEntries(entries);
+  return entries;
+}
+
+export async function saveLeaderboardEntry(entry: LeaderboardEntry): Promise<LeaderboardEntry[]> {
+  const normalized = normalizeEntry(entry);
+  const localEntries = cacheEntry(normalized);
+  const client = getSupabaseClient();
+  if (!client) return localEntries;
+
+  const { error } = await client.from('leaderboard_entries').insert({
+    name: normalized.name,
+    steps: normalized.steps,
+    duration_ms: normalized.durationMs,
+    completed_at: normalized.completedAt,
+  });
+
+  if (error) {
+    console.warn('Failed to save remote leaderboard entry, keeping local cache.', error);
+    return localEntries;
+  }
+
+  return getLeaderboard();
 }
 
 export function formatDuration(durationMs: number): string {
