@@ -10,6 +10,7 @@ import {
   startTitleMusic,
   updateBackgroundMusicVolume,
 } from '../config/audio';
+import { formatDuration, getLeaderboard, type LeaderboardEntry } from '../services/leaderboard';
 
 const AUDIO_CHANNEL_LABELS: Record<AudioChannel, string> = {
   sfx: '音效',
@@ -19,6 +20,7 @@ const AUDIO_CHANNEL_LABELS: Record<AudioChannel, string> = {
 
 export class TitleScene extends Phaser.Scene {
   private settingsPanel?: Phaser.GameObjects.Container;
+  private leaderboardPanel?: Phaser.GameObjects.Container;
   private volumeTexts: Partial<Record<AudioChannel, Phaser.GameObjects.Text>> = {};
   private muteButton?: UIButton;
 
@@ -30,6 +32,7 @@ export class TitleScene extends Phaser.Scene {
     applyAudioSettings(this.sound);
     startTitleMusic(this.sound);
     this.settingsPanel = undefined;
+    this.leaderboardPanel = undefined;
     this.volumeTexts = {};
     this.muteButton = undefined;
 
@@ -112,7 +115,13 @@ export class TitleScene extends Phaser.Scene {
     }).setOrigin(0, 0.5);
 
     // 7. 按钮区
-    new UIButton(this, 580, 535, '开始游戏', () => {
+    new UIButton(this, 420, 535, '排行榜', () => this.toggleLeaderboardPanel(), {
+      width: 140,
+      height: 58,
+      fontSize: '24px',
+    });
+
+    new UIButton(this, 600, 535, '开始游戏', () => {
       applyAudioSettings(this.sound);
       startBackgroundMusic(this.sound);
       this.scene.start('GameScene');
@@ -122,7 +131,7 @@ export class TitleScene extends Phaser.Scene {
       fontSize: '26px',
     });
 
-    new UIButton(this, 780, 535, '设置', () => this.toggleSettingsPanel(), {
+    new UIButton(this, 800, 535, '设置', () => this.toggleSettingsPanel(), {
       width: 120,
       height: 58,
       fontSize: '24px',
@@ -130,6 +139,11 @@ export class TitleScene extends Phaser.Scene {
   }
 
   private toggleSettingsPanel() {
+    if (this.leaderboardPanel) {
+      this.leaderboardPanel.destroy(true);
+      this.leaderboardPanel = undefined;
+    }
+
     if (this.settingsPanel) {
       this.settingsPanel.destroy(true);
       this.settingsPanel = undefined;
@@ -190,6 +204,92 @@ export class TitleScene extends Phaser.Scene {
     });
     panel.add([this.muteButton, closeButton]);
     this.settingsPanel = panel;
+  }
+
+  private toggleLeaderboardPanel() {
+    if (this.settingsPanel) {
+      this.settingsPanel.destroy(true);
+      this.settingsPanel = undefined;
+      this.volumeTexts = {};
+      this.muteButton = undefined;
+    }
+
+    if (this.leaderboardPanel) {
+      this.leaderboardPanel.destroy(true);
+      this.leaderboardPanel = undefined;
+      return;
+    }
+
+    const entries = getLeaderboard();
+    const panel = this.add.container(640, 500).setDepth(20);
+    const background = this.add.rectangle(0, 0, 660, 330, 0x1e2b30, 0.97).setStrokeStyle(3, 0xf5e6c8, 0.28);
+    const title = this.add.text(0, -136, '摆渡排行榜', {
+      fontSize: '30px',
+      color: '#ffffff',
+      fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
+    }).setOrigin(0.5);
+    const subtitle = this.add.text(0, -100, '按步数优先，步数相同按用时排序', {
+      fontSize: '18px',
+      color: '#c8d7d0',
+      fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
+    }).setOrigin(0.5);
+    panel.add([background, title, subtitle]);
+
+    if (entries.length === 0) {
+      const empty = this.add.text(0, 8, '暂无记录', {
+        fontSize: '26px',
+        color: '#d9e6df',
+        fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
+      }).setOrigin(0.5);
+      panel.add(empty);
+    } else {
+      this.addLeaderboardRows(panel, entries);
+    }
+
+    const closeButton = new UIButton(this, 0, 132, '关闭', () => this.toggleLeaderboardPanel(), {
+      width: 100,
+      height: 40,
+      fontSize: '20px',
+    });
+    panel.add(closeButton);
+    this.leaderboardPanel = panel;
+  }
+
+  private addLeaderboardRows(panel: Phaser.GameObjects.Container, entries: LeaderboardEntry[]) {
+    const header = this.add.text(-278, -62, '排名   姓名             步数   用时     达成时间', {
+      fontSize: '17px',
+      color: '#9eb8ae',
+      fontFamily: 'Consolas, "Microsoft YaHei", monospace',
+    }).setOrigin(0, 0.5);
+    panel.add(header);
+
+    entries.slice(0, 5).forEach((entry, index) => {
+      const row = [
+        `${index + 1}`.padStart(2, ' '),
+        entry.name.padEnd(10, ' '),
+        `${entry.steps}`.padStart(3, ' '),
+        formatDuration(entry.durationMs).padStart(6, ' '),
+        this.formatCompletedAt(entry.completedAt),
+      ].join('   ');
+      const text = this.add.text(-278, -24 + index * 28, row, {
+        fontSize: '18px',
+        color: index === 0 ? '#ffe08a' : '#ffffff',
+        fontFamily: 'Consolas, "Microsoft YaHei", monospace',
+      }).setOrigin(0, 0.5);
+      panel.add(text);
+    });
+  }
+
+  private formatCompletedAt(completedAt: string): string {
+    const date = new Date(completedAt);
+    if (Number.isNaN(date.getTime())) return '--';
+    return new Intl.DateTimeFormat('zh-CN', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(date);
   }
 
   private adjustVolume(channel: AudioChannel, delta: number) {

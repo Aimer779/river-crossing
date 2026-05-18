@@ -32,6 +32,7 @@ type GameSceneData = {
   undoStack?: GameState[];
   moveLabels?: string[];
   autoDemo?: boolean;
+  startedAt?: number;
 };
 
 type GameButtons = {
@@ -117,6 +118,7 @@ export class GameScene extends Phaser.Scene {
   private autoDemo = false;
   private lastHoverVoiceAt = Number.NEGATIVE_INFINITY;
   private characterHoverVoiceTimes = new Map<string, number>();
+  private startedAt = Date.now();
 
   constructor() {
     super({ key: 'GameScene' });
@@ -141,6 +143,7 @@ export class GameScene extends Phaser.Scene {
     this.autoDemo = data.autoDemo ?? false;
     this.lastHoverVoiceAt = Number.NEGATIVE_INFINITY;
     this.characterHoverVoiceTimes.clear();
+    this.startedAt = data.startedAt ?? Date.now();
   }
 
   create() {
@@ -802,6 +805,9 @@ export class GameScene extends Phaser.Scene {
         undoStack: this.undoStack.map((item) => cloneState(item)),
         moveLabels: [...this.moveLabels],
         losingSide: this.losingSide(),
+        startedAt: this.startedAt,
+        durationMs: Date.now() - this.startedAt,
+        completedAt: new Date().toISOString(),
       });
     });
   }

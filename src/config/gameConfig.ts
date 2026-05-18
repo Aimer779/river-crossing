@@ -10,6 +10,9 @@ export const gameConfig: Types.Core.GameConfig = {
   height: 720,
   parent: 'game-container',
   backgroundColor: '#87CEEB',
+  dom: {
+    createContainer: true,
+  },
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

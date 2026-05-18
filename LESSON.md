@@ -20,6 +20,7 @@
 - **核心函数要兜住 Move 边界**：`applyMove()` 已校验 `move.from` 是否等于船所在岸，但还应校验 `move.to` 是否为对岸，避免外部传入畸形 `Move` 时核心层默默纠正而不是明确拒绝。
 - **阶段一缺少自动化规则测试**：`tsc` 和 `pnpm build` 只能证明类型和构建通过，不能证明人数守恒、非法原因、失败/胜利、BFS 最短路径等规则不回归。阶段二前应补一组无额外依赖的核心断言脚本，或经确认后引入测试框架。
 - **Node 脚本里不要再 spawn `pnpm`**：Windows 下 `execFileSync('pnpm')` / `execFileSync('pnpm.cmd')` 在当前环境会分别遇到 `ENOENT` / `EINVAL`。项目脚本如需临时编译 TS，直接用 `process.execPath` 执行本地 `node_modules/typescript/bin/tsc` 更稳定。
+- **中文姓名输入优先用 Phaser DOM 输入框**：排行榜这类需要输入中文的界面不要用键盘事件手搓文本框，IME 组合输入会很麻烦；在 `gameConfig` 里开启 `dom.createContainer` 后用真实 `<input>`，再把保存/读取逻辑隔离到 service 层，后续替换 Supabase 更顺。
 
 ## 初始化阶段
 
