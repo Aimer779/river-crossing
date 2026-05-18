@@ -37,5 +37,6 @@
 - **Windows 换行符**：Git 默认将 LF 替换为 CRLF，提交时会产生大量 `warning: LF will be replaced by CRLF`。这不影响功能，但会污染命令行输出。如需避免，可设置 `git config core.autocrlf false`（团队统一即可）。
 - **Vite 构建时 chunk 体积警告**：Phaser 本身约 1.4MB，Vite 构建时会提示 chunk 过大。这是预期行为，MVP 阶段无需处理代码分割。
 - **空目录不进入 Git**：`assets/` 下的空子目录（`images/`、`audio/` 等）不会被 Git 追踪。需要时在对应目录下放 `.gitkeep`，或等正式资源放入后自然解决。
+- **Phaser 组件字段命名**：`Phaser.GameObjects.Container` 已有 `body` 字段用于物理系统。自定义组件里不要把矩形/船体命名为 `body`，否则 TypeScript 会认为子类覆盖了基类物理字段；用 `hull`、`block` 等更具体的名称。
 
 ---

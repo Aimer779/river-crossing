@@ -1,4 +1,4 @@
-import type { Types } from 'phaser';
+import Phaser, { type Types } from 'phaser';
 import { BootScene } from '../scenes/BootScene';
 import { TitleScene } from '../scenes/TitleScene';
 import { GameScene } from '../scenes/GameScene';
