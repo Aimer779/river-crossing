@@ -1,12 +1,36 @@
 import Phaser from 'phaser';
 import { UIButton } from '../components/UIButton';
+import {
+  type AudioChannel,
+  applyAudioSettings,
+  loadAudioSettings,
+  setAudioChannelVolume,
+  setAudioMuted,
+  startBackgroundMusic,
+  updateBackgroundMusicVolume,
+} from '../config/audio';
+
+const AUDIO_CHANNEL_LABELS: Record<AudioChannel, string> = {
+  sfx: '音效',
+  voice: '语音',
+  ambience: '环境',
+};
 
 export class TitleScene extends Phaser.Scene {
+  private settingsPanel?: Phaser.GameObjects.Container;
+  private volumeTexts: Partial<Record<AudioChannel, Phaser.GameObjects.Text>> = {};
+  private muteButton?: UIButton;
+
   constructor() {
     super({ key: 'TitleScene' });
   }
 
   create() {
+    applyAudioSettings(this.sound);
+    this.settingsPanel = undefined;
+    this.volumeTexts = {};
+    this.muteButton = undefined;
+
     this.add.rectangle(640, 360, 1280, 720, 0x101416);
     this.add.rectangle(640, 492, 540, 220, 0x69bce0);
     this.add.rectangle(190, 626, 380, 188, 0x6fa65f);
@@ -48,6 +72,8 @@ export class TitleScene extends Phaser.Scene {
     }).setOrigin(0, 0.5);
 
     new UIButton(this, 640, 350, '开始游戏', () => {
+      applyAudioSettings(this.sound);
+      startBackgroundMusic(this.sound);
       this.scene.start('GameScene');
     }, {
       width: 164,
@@ -55,8 +81,101 @@ export class TitleScene extends Phaser.Scene {
       fontSize: '24px',
     });
 
+    new UIButton(this, 820, 350, '设置', () => this.toggleSettingsPanel(), {
+      width: 112,
+      height: 54,
+      fontSize: '24px',
+    });
+
     this.drawBoatPreview(776, 500);
     this.drawPreviewCharacters(958, 496);
+  }
+
+  private toggleSettingsPanel() {
+    if (this.settingsPanel) {
+      this.settingsPanel.destroy(true);
+      this.settingsPanel = undefined;
+      this.volumeTexts = {};
+      this.muteButton = undefined;
+      return;
+    }
+
+    const panel = this.add.container(640, 500).setDepth(20);
+    const background = this.add.rectangle(0, 0, 520, 260, 0x1e2b30, 0.96).setStrokeStyle(3, 0xffffff, 0.24);
+    const title = this.add.text(0, -104, '音频设置', {
+      fontSize: '26px',
+      color: '#ffffff',
+      fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
+    }).setOrigin(0.5);
+    panel.add([background, title]);
+
+    const rows: Array<{ channel: AudioChannel; y: number }> = [
+      { channel: 'sfx', y: -48 },
+      { channel: 'voice', y: 8 },
+      { channel: 'ambience', y: 64 },
+    ];
+
+    rows.forEach(({ channel, y }) => {
+      const label = this.add.text(-190, y, AUDIO_CHANNEL_LABELS[channel], {
+        fontSize: '22px',
+        color: '#ffffff',
+        fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
+      }).setOrigin(0, 0.5);
+      const valueText = this.add.text(78, y, this.volumeLabel(channel), {
+        fontSize: '22px',
+        color: '#f5ddb0',
+        fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
+      }).setOrigin(0.5);
+      const minus = new UIButton(this, -34, y, '-', () => this.adjustVolume(channel, -0.1), {
+        width: 42,
+        height: 34,
+        fontSize: '24px',
+      });
+      const plus = new UIButton(this, 154, y, '+', () => this.adjustVolume(channel, 0.1), {
+        width: 42,
+        height: 34,
+        fontSize: '24px',
+      });
+      this.volumeTexts[channel] = valueText;
+      panel.add([label, minus, valueText, plus]);
+    });
+
+    this.muteButton = new UIButton(this, -70, 112, this.muteLabel(), () => this.toggleMute(), {
+      width: 132,
+      height: 40,
+      fontSize: '20px',
+    });
+    const closeButton = new UIButton(this, 86, 112, '关闭', () => this.toggleSettingsPanel(), {
+      width: 92,
+      height: 40,
+      fontSize: '20px',
+    });
+    panel.add([this.muteButton, closeButton]);
+    this.settingsPanel = panel;
+  }
+
+  private adjustVolume(channel: AudioChannel, delta: number) {
+    const settings = loadAudioSettings();
+    setAudioChannelVolume(channel, settings.volumes[channel] + delta);
+    applyAudioSettings(this.sound);
+    if (channel === 'ambience') {
+      updateBackgroundMusicVolume(this.sound);
+    }
+    this.volumeTexts[channel]?.setText(this.volumeLabel(channel));
+  }
+
+  private toggleMute() {
+    const settings = setAudioMuted(!loadAudioSettings().muted);
+    applyAudioSettings(this.sound);
+    this.muteButton?.setLabel(settings.muted ? '取消静音' : '静音');
+  }
+
+  private volumeLabel(channel: AudioChannel) {
+    return `${Math.round(loadAudioSettings().volumes[channel] * 100)}%`;
+  }
+
+  private muteLabel() {
+    return loadAudioSettings().muted ? '取消静音' : '静音';
   }
 
   private drawBoatPreview(x: number, y: number) {

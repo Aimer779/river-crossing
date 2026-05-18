@@ -16,6 +16,13 @@ import {
   saveSceneLayout,
   type SceneLayout,
 } from '../config/layout';
+import {
+  applyAudioSettings,
+  audioKeys,
+  loadAudioSettings,
+  setAudioMuted,
+  updateBackgroundMusicVolume,
+} from '../config/audio';
 
 type GameSceneData = {
   state?: GameState;
@@ -32,6 +39,7 @@ type GameButtons = {
   stopAi: UIButton;
   restart: UIButton;
   title: UIButton;
+  mute: UIButton;
 };
 
 type WorldObjects = {
@@ -126,6 +134,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
+    applyAudioSettings(this.sound);
     this.drawWorld();
     this.createUi();
     this.createCharacters();
@@ -188,6 +197,7 @@ export class GameScene extends Phaser.Scene {
       stopAi: new UIButton(this, 1078, 642, '停止', () => this.stopAiDemo(), { width: 86, height: 40, fontSize: '18px' }),
       restart: new UIButton(this, 1174, 642, '重开', () => this.scene.start('GameScene'), { width: 86, height: 40, fontSize: '18px' }),
       title: new UIButton(this, 80, 642, '标题', () => this.scene.start('TitleScene'), { width: 86, height: 40, fontSize: '18px' }),
+      mute: new UIButton(this, 176, 642, this.muteLabel(), () => this.handleToggleMute(), { width: 86, height: 40, fontSize: '18px' }),
     };
 
     this.historyPanel = new HistoryPanel(this, 944, 98);
@@ -703,6 +713,18 @@ export class GameScene extends Phaser.Scene {
     this.buttons.stopAi.setEnabled(this.aiRunning);
     this.buttons.restart.setEnabled(!this.isMoving);
     this.buttons.title.setEnabled(!this.isMoving);
+    this.buttons.mute.setEnabled(true).setLabel(this.muteLabel());
+  }
+
+  private handleToggleMute() {
+    const settings = setAudioMuted(!loadAudioSettings().muted);
+    applyAudioSettings(this.sound);
+    updateBackgroundMusicVolume(this.sound);
+    this.buttons.mute.setLabel(settings.muted ? '取消静音' : '静音');
+  }
+
+  private muteLabel() {
+    return loadAudioSettings().muted ? '取消静音' : '静音';
   }
 
   private formatMoveLabel(move: Move, step: number) {
@@ -731,6 +753,11 @@ export class GameScene extends Phaser.Scene {
   private enterGameOver() {
     this.aiRunning = false;
     this.aiDelay?.remove(false);
+    if (this.state.status === 'lose') {
+      const settings = loadAudioSettings();
+      applyAudioSettings(this.sound);
+      this.sound.play(audioKeys.lose, { volume: settings.volumes.sfx });
+    }
     this.time.delayedCall(520, () => {
       this.scene.start('GameOverScene', {
         status: this.state.status,

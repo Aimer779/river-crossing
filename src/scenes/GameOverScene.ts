@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { UIButton } from '../components/UIButton';
+import { audioKeys } from '../config/audio';
 import type { GameState, GameStatus, Side } from '../core/types';
 import { cloneState } from '../utils/cloneState';
 
@@ -69,10 +70,10 @@ export class GameOverScene extends Phaser.Scene {
     undo.setEnabled((this.dataFromGame.undoStack?.length ?? 0) > 0);
 
     new UIButton(this, 640, 460, '重新开始', () => {
-      this.scene.start('GameScene');
+      this.startScene('GameScene');
     });
     new UIButton(this, 780, 460, '返回标题', () => {
-      this.scene.start('TitleScene');
+      this.startScene('TitleScene');
     });
   }
 
@@ -82,10 +83,15 @@ export class GameOverScene extends Phaser.Scene {
     const previous = undoStack.pop();
     if (!previous) return;
     moveLabels.pop();
-    this.scene.start('GameScene', {
+    this.startScene('GameScene', {
       state: previous,
       undoStack,
       moveLabels,
     });
+  }
+
+  private startScene(key: string, data?: object) {
+    this.sound.stopByKey(audioKeys.lose);
+    this.scene.start(key, data);
   }
 }
