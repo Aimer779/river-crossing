@@ -1,4 +1,13 @@
 import type Phaser from 'phaser';
+import envirUrl from '../../assets/audio/ambience/envir.mp3?url';
+import haogeHoverLeftUrl from '../../assets/audio/haoge-hover-left.MP3?url';
+import haogeHoverMidUrl from '../../assets/audio/haoge-hover-mid.MP3?url';
+import haogeHoverRightUrl from '../../assets/audio/haoge-hover-right.MP3?url';
+import huaqiangHoverLeftUrl from '../../assets/audio/huaqiang-hover-left.MP3?url';
+import huaqiangHoverMidUrl from '../../assets/audio/huaqiang-hover-mid.MP3?url';
+import huaqiangHoverRightUrl from '../../assets/audio/huaqiang-hover-right.MP3?url';
+import loseUrl from '../../assets/audio/sfx/lose.mp3?url';
+import startUrl from '../../assets/audio/start.MP3?url';
 
 export const audioKeys = {
   click: 'click',
@@ -19,19 +28,19 @@ export type AudioChannel = 'sfx' | 'voice' | 'ambience';
 
 export const audioPaths = {
   sfx: {
-    [audioKeys.lose]: 'assets/audio/sfx/lose.mp3',
+    [audioKeys.lose]: loseUrl,
   },
   ambience: {
-    [audioKeys.titleMusic]: 'assets/audio/start.MP3',
-    [audioKeys.backgroundMusic]: 'assets/audio/ambience/envir.mp3',
+    [audioKeys.titleMusic]: startUrl,
+    [audioKeys.backgroundMusic]: envirUrl,
   },
   voice: {
-    [audioKeys.huaqiangHoverLeft]: 'assets/audio/huaqiang-hover-left.MP3',
-    [audioKeys.huaqiangHoverMid]: 'assets/audio/huaqiang-hover-mid.MP3',
-    [audioKeys.huaqiangHoverRight]: 'assets/audio/huaqiang-hover-right.MP3',
-    [audioKeys.haogeHoverLeft]: 'assets/audio/haoge-hover-left.MP3',
-    [audioKeys.haogeHoverMid]: 'assets/audio/haoge-hover-mid.MP3',
-    [audioKeys.haogeHoverRight]: 'assets/audio/haoge-hover-right.MP3',
+    [audioKeys.huaqiangHoverLeft]: huaqiangHoverLeftUrl,
+    [audioKeys.huaqiangHoverMid]: huaqiangHoverMidUrl,
+    [audioKeys.huaqiangHoverRight]: huaqiangHoverRightUrl,
+    [audioKeys.haogeHoverLeft]: haogeHoverLeftUrl,
+    [audioKeys.haogeHoverMid]: haogeHoverMidUrl,
+    [audioKeys.haogeHoverRight]: haogeHoverRightUrl,
   },
 } as const;
 

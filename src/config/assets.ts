@@ -1,3 +1,7 @@
+import boatUrl from '../../assets/images/moto_game.png?url';
+import haogeUrl from '../../assets/images/haoge_game.png?url';
+import huaqiangUrl from '../../assets/images/huaqiang_game.png?url';
+
 export const assetKeys = {
   bg: 'bg',
   boat: 'boat',
@@ -8,8 +12,8 @@ export const assetKeys = {
 export const assetPaths = {
   images: {
     [assetKeys.bg]: 'assets/images/bg.png',
-    [assetKeys.boat]: 'assets/images/moto_game.png',
-    [assetKeys.huaqiang]: 'assets/images/huaqiang_game.png',
-    [assetKeys.haoge]: 'assets/images/haoge_game.png',
+    [assetKeys.boat]: boatUrl,
+    [assetKeys.huaqiang]: huaqiangUrl,
+    [assetKeys.haoge]: haogeUrl,
   },
 };
