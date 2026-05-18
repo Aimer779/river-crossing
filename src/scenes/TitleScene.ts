@@ -31,64 +31,100 @@ export class TitleScene extends Phaser.Scene {
     this.volumeTexts = {};
     this.muteButton = undefined;
 
+    // 1. 全屏背景占位（后续替换为像素风夜市背景图）
     this.add.rectangle(640, 360, 1280, 720, 0x101416);
-    this.add.rectangle(640, 492, 540, 220, 0x69bce0);
-    this.add.rectangle(190, 626, 380, 188, 0x6fa65f);
-    this.add.rectangle(1090, 626, 380, 188, 0x6a9f58);
 
-    const graphics = this.add.graphics();
-    graphics.fillStyle(0xf3b0dc, 1);
-    graphics.fillRoundedRect(365, 58, 560, 148, 38);
-    graphics.fillStyle(0xf5a2cb, 1);
-    graphics.fillRoundedRect(72, 170, 1136, 250, 34);
-    graphics.fillStyle(0xd8f0f8, 0.76);
-    graphics.fillRoundedRect(72, 250, 1136, 170, 34);
+    // 2. 中央木牌面板
+    const panelX = 640;
+    const panelY = 370;
+    const panelW = 800;
+    const panelH = 520;
+    const panelR = 20;
 
-    this.add.text(640, 128, '郝哥求生指南', {
-      fontSize: '48px',
+    const panelBg = this.add.graphics();
+    // 面板阴影
+    panelBg.fillStyle(0x000000, 0.35);
+    panelBg.fillRoundedRect(panelX - panelW / 2 + 6, panelY - panelH / 2 + 6, panelW, panelH, panelR);
+    // 面板底色（深木色，后续可换木牌贴图）
+    panelBg.fillStyle(0x2d1f14, 1);
+    panelBg.fillRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, panelR);
+    // 面板边框
+    panelBg.lineStyle(4, 0x8b5e3c, 1);
+    panelBg.strokeRoundedRect(panelX - panelW / 2, panelY - panelH / 2, panelW, panelH, panelR);
+
+    // 3. 标题背景条（木牌上的铭牌）
+    const titleBarW = 560;
+    const titleBarH = 100;
+    const titleBarY = 155;
+    const titleGraphics = this.add.graphics();
+    titleGraphics.fillStyle(0xc49a6c, 1);
+    titleGraphics.fillRoundedRect(panelX - titleBarW / 2, titleBarY - titleBarH / 2, titleBarW, titleBarH, 16);
+    titleGraphics.lineStyle(3, 0x5c3a21, 1);
+    titleGraphics.strokeRoundedRect(panelX - titleBarW / 2, titleBarY - titleBarH / 2, titleBarW, titleBarH, 16);
+
+    // 4. 标题文字
+    this.add.text(panelX, 140, '郝哥求生指南', {
+      fontSize: '52px',
       color: '#2b2026',
       fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
+      fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    this.add.text(640, 180, 'Press on Play', {
-      fontSize: '26px',
-      color: '#33262c',
+    this.add.text(panelX, 228, 'Press on Play', {
+      fontSize: '22px',
+      color: '#a08060',
       fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
     }).setOrigin(0.5);
 
-    this.add.text(126, 250, '请帮 3 个华强和 3 个郝哥\n安全移动到河对岸。', {
-      fontSize: '31px',
-      color: '#8a3048',
-      fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
-      lineSpacing: 16,
-    }).setOrigin(0, 0.5);
+    // 5. 规则区域背景（纸张色便签区）
+    const ruleW = 760;
+    const ruleH = 220;
+    const ruleY = 355;
+    const ruleGraphics = this.add.graphics();
+    ruleGraphics.fillStyle(0xf5e6c8, 1);
+    ruleGraphics.fillRoundedRect(panelX - ruleW / 2, ruleY - ruleH / 2, ruleW, ruleH, 14);
+    ruleGraphics.lineStyle(2, 0x8b5e3c, 0.6);
+    ruleGraphics.strokeRoundedRect(panelX - ruleW / 2, ruleY - ruleH / 2, ruleW, ruleH, 14);
+    // 中间分隔线
+    ruleGraphics.lineStyle(2, 0x8b5e3c, 0.25);
+    ruleGraphics.lineBetween(panelX, ruleY - ruleH / 2 + 20, panelX, ruleY + ruleH / 2 - 20);
 
-    this.add.text(694, 250, '注意：任意一岸只要华强多于郝哥，\n且该岸还有郝哥，游戏失败。', {
-      fontSize: '27px',
-      color: '#b03b35',
+    // 6. 规则文字（左右分栏）
+    const leftX = panelX - ruleW / 2 + 30;
+    const rightX = panelX + 10;
+    const textY = ruleY - 10;
+
+    this.add.text(leftX, textY, '请帮 3 个华强和 3 个郝哥\n安全移动到河对岸。', {
+      fontSize: '28px',
+      color: '#5c3a21',
       fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
       lineSpacing: 14,
-      align: 'center',
     }).setOrigin(0, 0.5);
 
-    new UIButton(this, 640, 350, '开始游戏', () => {
+    this.add.text(rightX, textY, '注意：任意一岸只要华强多于郝哥，且该岸还有郝哥，游戏失败。', {
+      fontSize: '24px',
+      color: '#8a3048',
+      fontFamily: 'Arial, "Microsoft YaHei", sans-serif',
+      lineSpacing: 12,
+      wordWrap: { width: 340, useAdvancedWrap: true },
+    }).setOrigin(0, 0.5);
+
+    // 7. 按钮区
+    new UIButton(this, 580, 535, '开始游戏', () => {
       applyAudioSettings(this.sound);
       startBackgroundMusic(this.sound);
       this.scene.start('GameScene');
     }, {
-      width: 164,
-      height: 54,
-      fontSize: '24px',
+      width: 180,
+      height: 58,
+      fontSize: '26px',
     });
 
-    new UIButton(this, 820, 350, '设置', () => this.toggleSettingsPanel(), {
-      width: 112,
-      height: 54,
+    new UIButton(this, 780, 535, '设置', () => this.toggleSettingsPanel(), {
+      width: 120,
+      height: 58,
       fontSize: '24px',
     });
-
-    this.drawBoatPreview(776, 500);
-    this.drawPreviewCharacters(958, 496);
   }
 
   private toggleSettingsPanel() {
@@ -178,28 +214,4 @@ export class TitleScene extends Phaser.Scene {
     return loadAudioSettings().muted ? '取消静音' : '静音';
   }
 
-  private drawBoatPreview(x: number, y: number) {
-    const graphics = this.add.graphics();
-    graphics.fillStyle(0x8a5527, 1);
-    graphics.lineStyle(4, 0x5c3418, 1);
-    graphics.fillRoundedRect(x - 88, y - 28, 176, 58, 24);
-    graphics.strokeRoundedRect(x - 88, y - 28, 176, 58, 24);
-    graphics.lineStyle(5, 0x6d8a8f, 0.75);
-    graphics.lineBetween(x + 18, y - 34, x - 10, y + 42);
-  }
-
-  private drawPreviewCharacters(startX: number, y: number) {
-    for (let i = 0; i < 6; i += 1) {
-      const x = startX + i * 46;
-      const isHuaqiang = i < 3;
-      this.add.ellipse(x, y + 31, 38, 9, 0x000000, 0.14);
-      this.add.rectangle(x, y + 9, 28, 42, isHuaqiang ? 0x2b2f38 : 0x2f7fa7, 1);
-      this.add.ellipse(x, y - 17, 24, 25, 0xf0c38a, 1);
-      if (isHuaqiang) {
-        this.add.rectangle(x, y - 31, 28, 7, 0xb5412e, 1);
-      } else {
-        this.add.arc(x, y - 26, 13, 205, 335, false, 0x3d2b1d, 1);
-      }
-    }
-  }
 }
