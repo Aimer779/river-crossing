@@ -440,9 +440,11 @@ export class GameScene extends Phaser.Scene {
       onComplete: () => {
         this.state = nextState;
         this.moveLabels.push(label);
-        this.selectedIds = [];
         this.isMoving = false;
-        this.syncCharactersToState(false);
+        movingCharacters.forEach((character) => {
+          character.location = 'boat';
+        });
+        this.positionCharacters(false);
         this.updateUi();
 
         if (this.state.status !== 'playing') {
