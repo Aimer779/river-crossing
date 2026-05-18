@@ -8,8 +8,8 @@ export const assetKeys = {
 export const assetPaths = {
   images: {
     [assetKeys.bg]: 'assets/images/bg.png',
-    [assetKeys.boat]: 'assets/images/boat.png',
-    [assetKeys.huaqiang]: 'assets/images/huaqiang.png',
-    [assetKeys.haoge]: 'assets/images/haoge.png',
+    [assetKeys.boat]: 'assets/images/moto_game.png',
+    [assetKeys.huaqiang]: 'assets/images/huaqiang_game.png',
+    [assetKeys.haoge]: 'assets/images/haoge_game.png',
   },
 };

@@ -418,10 +418,12 @@ export class GameScene extends Phaser.Scene {
 
     this.undoStack.push(previousState);
     this.isMoving = true;
+    this.boat.setMirrored(to === 'right');
     this.updateUi();
 
     movingCharacters.forEach((character, index) => {
-      const seat = { x: this.boatX(to) + (index === 0 ? -42 : 42), y: this.layout.boatY - 8 };
+      const seatOffset = this.boat.getSeatOffset(index);
+      const seat = { x: this.boatX(to) + seatOffset.x, y: this.layout.boatY + seatOffset.y };
       this.tweens.killTweensOf(character);
       this.tweens.add({
         targets: character,
@@ -477,6 +479,7 @@ export class GameScene extends Phaser.Scene {
     this.selectedIds = [];
     this.state = previous;
     this.boat.setPosition(this.boatX(this.state.boatSide), this.layout.boatY);
+    this.boat.setMirrored(this.state.boatSide === 'right');
     this.syncCharactersToState(false);
     this.updateUi();
   }
@@ -575,6 +578,7 @@ export class GameScene extends Phaser.Scene {
       });
     });
     this.boat?.setPosition(this.boatX(this.state.boatSide), this.layout.boatY);
+    this.boat?.setMirrored(this.state.boatSide === 'right');
     this.positionCharacters(animated);
   }
 

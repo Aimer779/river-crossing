@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { assetKeys, assetPaths } from '../config/assets';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -6,7 +7,9 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    // TODO: load assets
+    this.load.image(assetKeys.boat, assetPaths.images[assetKeys.boat]);
+    this.load.image(assetKeys.huaqiang, assetPaths.images[assetKeys.huaqiang]);
+    this.load.image(assetKeys.haoge, assetPaths.images[assetKeys.haoge]);
   }
 
   create() {
