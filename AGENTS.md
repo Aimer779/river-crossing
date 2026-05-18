@@ -26,6 +26,17 @@
 
 如需引入额外依赖（如状态管理库、测试框架、UI 组件库等），必须先征得用户同意。
 
+### 常用命令
+
+| 命令 | 用途 |
+|---|---|
+| `pnpm install` | 安装依赖 |
+| `pnpm dev` | 启动开发服务器（`http://localhost:5173`） |
+| `pnpm build` | 类型检查 + 生产构建（输出到 `dist/`） |
+| `pnpm preview` | 预览生产构建 |
+| `pnpm exec tsc --noEmit` | 仅运行 TypeScript 类型检查 |
+| `pnpm exec tsc --noEmit --watch` | 监听模式下类型检查 |
+
 ### 核心目录结构（规划）
 
 ```
