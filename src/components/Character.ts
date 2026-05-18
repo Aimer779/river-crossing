@@ -18,7 +18,8 @@ export class Character extends Phaser.GameObjects.Container {
     id: string,
     kind: CharacterKind,
     location: CharacterLocation,
-    onClick: (character: Character) => void
+    onClick: (character: Character) => void,
+    onHover?: (character: Character) => void,
   ) {
     super(scene, x, y);
     this.id = id;
@@ -35,6 +36,7 @@ export class Character extends Phaser.GameObjects.Container {
       Phaser.Geom.Rectangle.Contains,
     );
     this.on('pointerdown', () => onClick(this));
+    this.on('pointerover', () => onHover?.(this));
   }
 
   setHighlight(enabled: boolean) {

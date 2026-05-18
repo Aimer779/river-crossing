@@ -19,6 +19,8 @@ import {
 import {
   applyAudioSettings,
   audioKeys,
+  hoverVoiceKeyList,
+  hoverVoiceKeys,
   loadAudioSettings,
   setAudioMuted,
   startBackgroundMusic,
@@ -72,6 +74,9 @@ const DEV_TARGETS: DevTarget[] = [
   { label: 'right characters', x: 'rightStartX', y: 'characterY', spacing: 'characterSpacing' },
 ];
 
+const HOVER_VOICE_GLOBAL_COOLDOWN_MS = 800;
+const HOVER_VOICE_CHARACTER_COOLDOWN_MS = 2000;
+
 function initialState(): GameState {
   return {
     left: { huaqiang: 3, haoge: 3 },
@@ -110,6 +115,8 @@ export class GameScene extends Phaser.Scene {
   private aiDelay?: Phaser.Time.TimerEvent;
   private activeToast?: Toast;
   private autoDemo = false;
+  private lastHoverVoiceAt = Number.NEGATIVE_INFINITY;
+  private characterHoverVoiceTimes = new Map<string, number>();
 
   constructor() {
     super({ key: 'GameScene' });
@@ -132,6 +139,8 @@ export class GameScene extends Phaser.Scene {
     this.devText = undefined;
     this.devGuide = undefined;
     this.autoDemo = data.autoDemo ?? false;
+    this.lastHoverVoiceAt = Number.NEGATIVE_INFINITY;
+    this.characterHoverVoiceTimes.clear();
   }
 
   create() {
@@ -356,11 +365,37 @@ export class GameScene extends Phaser.Scene {
     for (let i = 1; i <= 3; i += 1) {
       this.characters.push(new Character(this, 0, 0, `huaqiang-${i}`, 'huaqiang', 'left', (character) => {
         this.handleCharacterClick(character);
+      }, (character) => {
+        this.handleCharacterHover(character);
       }));
       this.characters.push(new Character(this, 0, 0, `haoge-${i}`, 'haoge', 'left', (character) => {
         this.handleCharacterClick(character);
+      }, (character) => {
+        this.handleCharacterHover(character);
       }));
     }
+  }
+
+  private handleCharacterHover(character: Character) {
+    if (this.state.status !== 'playing' || this.isMoving || this.aiRunning) {
+      return;
+    }
+
+    const now = this.time.now;
+    const lastCharacterHoverAt = this.characterHoverVoiceTimes.get(character.id) ?? Number.NEGATIVE_INFINITY;
+    if (
+      now - this.lastHoverVoiceAt < HOVER_VOICE_GLOBAL_COOLDOWN_MS ||
+      now - lastCharacterHoverAt < HOVER_VOICE_CHARACTER_COOLDOWN_MS
+    ) {
+      return;
+    }
+
+    const key = hoverVoiceKeys[character.kind][character.location];
+    const settings = loadAudioSettings();
+    hoverVoiceKeyList.forEach((voiceKey) => this.sound.stopByKey(voiceKey));
+    this.sound.play(key, { volume: settings.volumes.voice });
+    this.lastHoverVoiceAt = now;
+    this.characterHoverVoiceTimes.set(character.id, now);
   }
 
   private handleCharacterClick(character: Character) {

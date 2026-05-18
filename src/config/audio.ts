@@ -7,6 +7,12 @@ export const audioKeys = {
   lose: 'lose',
   titleMusic: 'titleMusic',
   backgroundMusic: 'backgroundMusic',
+  huaqiangHoverLeft: 'huaqiangHoverLeft',
+  huaqiangHoverMid: 'huaqiangHoverMid',
+  huaqiangHoverRight: 'huaqiangHoverRight',
+  haogeHoverLeft: 'haogeHoverLeft',
+  haogeHoverMid: 'haogeHoverMid',
+  haogeHoverRight: 'haogeHoverRight',
 } as const;
 
 export type AudioChannel = 'sfx' | 'voice' | 'ambience';
@@ -19,7 +25,37 @@ export const audioPaths = {
     [audioKeys.titleMusic]: 'assets/audio/start.MP3',
     [audioKeys.backgroundMusic]: 'assets/audio/ambience/envir.mp3',
   },
+  voice: {
+    [audioKeys.huaqiangHoverLeft]: 'assets/audio/huaqiang-hover-left.MP3',
+    [audioKeys.huaqiangHoverMid]: 'assets/audio/huaqiang-hover-mid.MP3',
+    [audioKeys.huaqiangHoverRight]: 'assets/audio/huaqiang-hover-right.MP3',
+    [audioKeys.haogeHoverLeft]: 'assets/audio/haoge-hover-left.MP3',
+    [audioKeys.haogeHoverMid]: 'assets/audio/haoge-hover-mid.MP3',
+    [audioKeys.haogeHoverRight]: 'assets/audio/haoge-hover-right.MP3',
+  },
 } as const;
+
+export const hoverVoiceKeys = {
+  huaqiang: {
+    left: audioKeys.huaqiangHoverLeft,
+    boat: audioKeys.huaqiangHoverMid,
+    right: audioKeys.huaqiangHoverRight,
+  },
+  haoge: {
+    left: audioKeys.haogeHoverLeft,
+    boat: audioKeys.haogeHoverMid,
+    right: audioKeys.haogeHoverRight,
+  },
+} as const;
+
+export const hoverVoiceKeyList = [
+  audioKeys.huaqiangHoverLeft,
+  audioKeys.huaqiangHoverMid,
+  audioKeys.huaqiangHoverRight,
+  audioKeys.haogeHoverLeft,
+  audioKeys.haogeHoverMid,
+  audioKeys.haogeHoverRight,
+] as const;
 
 export const defaultAudioVolumes: Record<AudioChannel, number> = {
   sfx: 0.6,

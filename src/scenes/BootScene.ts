@@ -14,6 +14,9 @@ export class BootScene extends Phaser.Scene {
     this.load.audio(audioKeys.lose, audioPaths.sfx[audioKeys.lose]);
     this.load.audio(audioKeys.titleMusic, audioPaths.ambience[audioKeys.titleMusic]);
     this.load.audio(audioKeys.backgroundMusic, audioPaths.ambience[audioKeys.backgroundMusic]);
+    Object.entries(audioPaths.voice).forEach(([key, path]) => {
+      this.load.audio(key, path);
+    });
   }
 
   create() {
