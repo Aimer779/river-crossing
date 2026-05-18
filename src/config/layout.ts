@@ -46,7 +46,7 @@ export const defaultSceneLayout: SceneLayout = {
   characterY: 498,
   characterSpacing: 58,
   boatLeftX: 476,
-  boatRightX: 729,
+  boatRightX: 802,
   boatY: 581,
 };
 
