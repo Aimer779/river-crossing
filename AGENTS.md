@@ -37,6 +37,25 @@
 | `pnpm exec tsc --noEmit` | 仅运行 TypeScript 类型检查 |
 | `pnpm exec tsc --noEmit --watch` | 监听模式下类型检查 |
 
+### 开发者布局模式
+
+游戏页支持通过 URL 参数开启布局调参模式：`http://localhost:5173/?dev=1`。
+
+用途：手动微调河水、左右岸色块、岸线上沿、左右船停靠点、左右角色起始位置和角色间距。调参结果可保存到浏览器 `localStorage`，也可复制 JSON 后固化进 `src/config/layout.ts` 的 `defaultSceneLayout`。
+
+快捷键：
+
+- `N` / `P`：切换调节点
+- 方向键：移动当前目标；`Shift + 方向键` 每次移动 10px
+- `[` / `]`：调整宽度
+- `;` / `'`：调整高度
+- `,` / `.`：调整角色间距
+- `Enter`：保存到 `localStorage`
+- `Backspace`：清除本地保存并恢复代码默认布局
+- `C`：复制当前布局 JSON
+
+注意：`localStorage` 保存值会覆盖代码里的默认布局。验证刚固化的 `defaultSceneLayout` 时，先在开发者模式按 `Backspace` 清除本地覆盖。
+
 ### 核心目录结构（规划）
 
 ```
